@@ -36,7 +36,9 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
 
   const handleGoogleLogin = () => {
     // Redirect to backend Google OAuth endpoint
-    const apiBaseUrl = import.meta.env.VITE_API_URL
+    // Redirect to backend Google OAuth endpoint
+    const rawBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+    const apiBaseUrl = rawBaseUrl.replace(/\/+$/, '') // remove trailing slashes
     window.location.href = `${apiBaseUrl}/auth/google`
   }
 
