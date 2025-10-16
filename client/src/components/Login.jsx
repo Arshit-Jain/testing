@@ -3,6 +3,7 @@ import './Login.css'
 import { authAPI } from '../services/api'
 import { FcGoogle } from 'react-icons/fc'
 
+
 const Login = ({ onLogin, onSwitchToRegister }) => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -35,7 +36,7 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
 
   const handleGoogleLogin = () => {
     // Redirect to backend Google OAuth endpoint
-    const apiBaseUrl = 'http://localhost:3000'
+    const apiBaseUrl = import.meta.env.VITE_API_URL
     window.location.href = `${apiBaseUrl}/auth/google`
   }
 
