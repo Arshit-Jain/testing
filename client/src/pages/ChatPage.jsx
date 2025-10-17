@@ -23,30 +23,21 @@ const ChatPage = () => {
     try {
       if (!chat.newMessage.trim()) return
       
-      console.log('=== ChatPage: handleSendMessage called ===', {
-        hasActiveChat: !!chat.activeChat,
-        messageLength: chat.newMessage.length,
-        isCompleted: chat.researchState.isCompleted,
-        hasError: chat.researchState.hasError
-      })
-
       // Check if chat is completed or has error - prevent sending messages
       if (chat.researchState.isCompleted || chat.researchState.hasError) {
-        console.log('=== ChatPage: Blocking message send - chat completed or has error ===')
+        console.log('=== ChatPage: Blocking message send - chat completed or has error ===');
         return
       }
 
       // If there's an active chat, send message to it
       if (chat.activeChat) {
-        console.log('=== ChatPage: Sending message to existing chat ===')
         await handleChatOperation(() => chat.handleSendMessage())
       } else {
         // No active chat, create new chat and send message
-        console.log('=== ChatPage: Creating new chat ===')
+        // This only happens when user types a message, not on empty chats
         await handleChatOperation(() => chat.handleSendMessageToNewChat())
       }
     } catch (error) {
-      console.error('=== ChatPage: Error in handleSendMessage ===', error)
       if (error.message === 'Authentication required') {
         logout()
         navigate('/login', { replace: true })
@@ -59,7 +50,6 @@ const ChatPage = () => {
     try {
       await operation()
     } catch (error) {
-      console.error('=== ChatPage: Chat operation error ===', error)
       if (error.message === 'Authentication required') {
         logout()
         navigate('/login', { replace: true })
@@ -68,41 +58,30 @@ const ChatPage = () => {
     }
   }, [logout, navigate])
 
-  // Handle new chat - clear the UI
+  // Handle new chat - DON'T actually create it yet, just clear the UI
   const handleNewChat = useCallback(() => {
-    console.log('=== ChatPage: handleNewChat called ===')
-    chat.clearActiveChat()
+    // Clear active chat and messages in the UI
+    // Don't create a new chat in the database yet
+    chat.clearActiveChat() // You'll need to add this function to your useChat hook
     
     if (ui.isMobile) {
       ui.closeSidebar()
     }
-  }, [chat, ui])
+  }, [chat, ui.isMobile, ui.closeSidebar])
 
-  // Handle chat select
-  const handleChatSelect = useCallback((chatId) => {
-    console.log('=== ChatPage: handleChatSelect called ===', { chatId })
+  // Handle chat select with mobile sidebar close
+  const handleChatSelect = (chatId) => {
     chat.handleChatSelect(chatId)
     if (ui.isMobile) {
       ui.closeSidebar()
     }
-  }, [chat, ui])
+  }
 
-  // Handle logout
-  const handleLogout = useCallback(async () => {
-    console.log('=== ChatPage: handleLogout called ===')
+  // Handle logout with redirect
+  const handleLogout = async () => {
     await logout()
     navigate('/login', { replace: true })
-  }, [logout, navigate])
-
-  // Handle message change
-  const handleMessageChange = useCallback((e) => {
-    chat.handleMessageChange(e)
-  }, [chat])
-
-  // Handle key press
-  const handleKeyPress = useCallback((e) => {
-    chat.handleKeyPress(e)
-  }, [chat])
+  }
 
   if (checkingAuth) {
     return <div>Loading...</div>
@@ -124,8 +103,8 @@ const ChatPage = () => {
       onNewChat={handleNewChat}
       onChatSelect={handleChatSelect}
       onSendMessage={handleSendMessage}
-      onMessageChange={handleMessageChange}
-      onKeyPress={handleKeyPress}
+      onMessageChange={chat.handleMessageChange}
+      onKeyPress={chat.handleKeyPress}
       onSendEmail={chat.handleSendEmail}
       onToggleSidebar={ui.toggleSidebar}
       onCloseSidebar={ui.closeSidebar}
