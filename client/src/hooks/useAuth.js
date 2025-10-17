@@ -1,74 +1,59 @@
-import { useState, useEffect, useCallback } from 'react'
-import { authAPI } from '../services/api'
+import express from "express";
+import authenticateJWT from "../middleware/auth.js"; // ✅ add this line
+import { userQueries, dailyChatQueries } from "../database/queries.js";
 
-export const useAuth = () => {
-  const [user, setUser] = useState(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [checkingAuth, setCheckingAuth] = useState(true)
+const router = express.Router();
 
-  const checkAuthStatus = useCallback(async () => {
-    try {
-      console.log('🔍 useAuth: Checking authentication status...')
-      const response = await authAPI.checkAuthStatus()
+// ===== Get user chat count and limits =====
+router.get("/chat-count", authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await userQueries.findById(userId);
 
-      if (response?.authenticated && response?.user) {
-        console.log('✅ useAuth: Authenticated user found:', response.user)
-        setUser(response.user)
-        setIsAuthenticated(true)
-      } else {
-        console.log('🚫 useAuth: Not authenticated')
-        setUser(null)
-        setIsAuthenticated(false)
-      }
-    } catch (error) {
-      console.error('❌ useAuth: Auth check failed:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      })
-      setUser(null)
-      setIsAuthenticated(false)
-    } finally {
-      setCheckingAuth(false)
+    if (!user) {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
     }
-  }, [])
 
+    const todayCount = await dailyChatQueries.getTodayCount(userId);
+    const maxChats = user.is_premium ? 20 : 5;
 
-  useEffect(() => {
-    checkAuthStatus()
-  }, [checkAuthStatus])
-
-
-  const login = (userData) => {
-    if (!userData) return
-    console.log('🔐 useAuth: Logging in manually:', userData)
-    setUser(userData)
-    setIsAuthenticated(true)
+    res.json({
+      success: true,
+      todayCount,
+      maxChats,
+      isPremium: user.is_premium,
+    });
+  } catch (error) {
+    console.error("Get chat count error:", error);
+    res.status(500).json({ success: false, error: "Failed to get chat count" });
   }
+});
 
+// ===== Get user profile =====
+router.get("/profile", authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await userQueries.findById(userId);
 
-  const logout = async () => {
-    try {
-      console.log('🚪 useAuth: Logging out...')
-      await authAPI.logout()
-    } catch (error) {
-      console.error('❌ useAuth: Logout failed:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      })
-    } finally {
-      setUser(null)
-      setIsAuthenticated(false)
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
     }
-  }
 
-  return {
-    user,
-    isAuthenticated,
-    checkingAuth,
-    login,
-    logout,
-    checkAuthStatus
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        is_premium: user.is_premium,
+        created_at: user.created_at,
+        last_login: user.last_login,
+      },
+    });
+  } catch (error) {
+    console.error("Get user profile error:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch user profile" });
   }
-}
+});
+
+export default router;
