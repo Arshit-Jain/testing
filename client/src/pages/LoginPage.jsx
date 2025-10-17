@@ -79,8 +79,7 @@ const LoginPage = () => {
 
           if (response.data.success && response.data.user && response.data.token) {
             console.log('=== OAuth JWT received successfully! ===', response.data.user)
-            localStorage.setItem('authToken', response.data.token)
-            login(response.data.user)
+            login(response.data.user, response.data.token)
             cleanUrl()
             await new Promise(resolve => setTimeout(resolve, 100))
             navigate('/chat', { replace: true })
@@ -88,6 +87,7 @@ const LoginPage = () => {
             console.error('OAuth JWT creation failed:', response.data)
             setOauthError('Failed to establish session. Please try again.')
           }
+          
         } catch (err) {
           console.error('=== OAuth token exchange failed ===', err)
           console.error('Error details:', {
