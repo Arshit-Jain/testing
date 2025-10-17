@@ -73,7 +73,7 @@ export const authAPI = {
   async logout() {
     try {
       setAuthToken(null)
-      const response = await apiClient.post('/api/logout')
+      const response = await apiClient.post('/api/auth/logout')
       return response.data
     } catch (error) {
       console.error('❌ Logout failed:', error.response?.data || error.message)
