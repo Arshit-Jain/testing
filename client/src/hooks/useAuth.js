@@ -6,7 +6,6 @@ export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  // ✅ Wrap in useCallback so React won't re-run effect unnecessarily
   const checkAuthStatus = useCallback(async () => {
     try {
       console.log('🔍 useAuth: Checking authentication status...')
@@ -34,12 +33,12 @@ export const useAuth = () => {
     }
   }, [])
 
-  // ✅ Check authentication only once on mount
+
   useEffect(() => {
     checkAuthStatus()
   }, [checkAuthStatus])
 
-  // ✅ Login manually after OAuth or form login
+
   const login = (userData) => {
     if (!userData) return
     console.log('🔐 useAuth: Logging in manually:', userData)
@@ -47,7 +46,7 @@ export const useAuth = () => {
     setIsAuthenticated(true)
   }
 
-  // ✅ Logout, clear cookies and state
+
   const logout = async () => {
     try {
       console.log('🚪 useAuth: Logging out...')
@@ -70,6 +69,6 @@ export const useAuth = () => {
     checkingAuth,
     login,
     logout,
-    checkAuthStatus, // ✅ optional re-check trigger for other components
+    checkAuthStatus
   }
 }
