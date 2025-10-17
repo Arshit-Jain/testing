@@ -1,27 +1,37 @@
 import { useState, useEffect, useCallback } from 'react'
 import { authAPI } from '../services/api'
-import axios from "axios"
 
 export const useAuth = () => {
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  const checkAuthStatus = async () => {
-    const token = localStorage.getItem("authToken"); // Get token from localStorage
+  const checkAuthStatus = useCallback(async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/status`, {
-        headers: token
-          ? { Authorization: `Bearer ${token}` } // Attach token
-          : undefined,
-        withCredentials: true, // optional if backend uses cookies
-      });
-      return response.data;
-    } catch (err) {
-      console.error("Auth check failed", err);
-      throw err;
+      console.log('🔍 useAuth: Checking authentication status...')
+      const response = await authAPI.checkAuthStatus()
+
+      if (response?.authenticated && response?.user) {
+        console.log('✅ useAuth: Authenticated user found:', response.user)
+        setUser(response.user)
+        setIsAuthenticated(true)
+      } else {
+        console.log('🚫 useAuth: Not authenticated')
+        setUser(null)
+        setIsAuthenticated(false)
+      }
+    } catch (error) {
+      console.error('❌ useAuth: Auth check failed:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      })
+      setUser(null)
+      setIsAuthenticated(false)
+    } finally {
+      setCheckingAuth(false)
     }
-  };
+  }, [])
 
 
   useEffect(() => {
