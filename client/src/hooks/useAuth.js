@@ -9,6 +9,19 @@ export const useAuth = () => {
   const checkAuthStatus = useCallback(async () => {
     try {
       console.log('🔍 useAuth: Checking authentication status...')
+      
+      // First check if token exists in localStorage
+      const token = localStorage.getItem('authToken')
+      
+      if (!token) {
+        console.log('🚫 useAuth: No token in localStorage, skipping status check')
+        setUser(null)
+        setIsAuthenticated(false)
+        setCheckingAuth(false)
+        return
+      }
+
+      // Token exists, verify it with backend
       const response = await authAPI.checkAuthStatus()
 
       if (response?.authenticated && response?.user) {
