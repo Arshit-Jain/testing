@@ -179,12 +179,7 @@
 }
 
 /* --- Mobile styles --- */
-@media (max-width: 768px) {
-  .sidebar {
-    width: 240px;
-  }
-}
-
+/* --- Mobile styles --- */
 @media (max-width: 640px) {
   .sidebar {
     position: fixed;
@@ -195,7 +190,7 @@
     transition: transform 0.3s ease;
     transform: translateX(-100%);
     z-index: 1001;
-    /* REMOVED: overflow-y: auto; - The sidebar itself should not scroll */
+    /* Removed overflow-y: auto; - The sidebar itself should not scroll */
     overflow-x: hidden;
   }
 
@@ -218,28 +213,25 @@
     display: block;
   }
 
+  /*
+   * Crucial Fix: Ensure header and footer don't shrink, and history scrolls.
+   */
+  .sidebar-header,
+  .sidebar-footer {
+    flex-shrink: 0; /* Ensures these parts keep their size and stay visible */
+    padding: 12px;
+  }
+
   .chat-history {
     padding: 12px;
-    /* Make this section the only part that scrolls and fill the remaining space */
-    flex: 1; 
-    min-height: 0; 
-    overflow-y: auto; /* **CRUCIAL:** Only history scrolls on mobile */
+    flex: 1; /* Fills the space between the header and footer */
+    min-height: 0; /* Allows flex item to properly handle its overflow */
+    overflow-y: auto; /* Only this section scrolls on mobile */
     overflow-x: hidden;
-    /* REMOVED: max-height: calc(100vh - 200px); */
   }
 
   .chat-item {
     padding: 10px 12px;
     font-size: 13px;
-  }
-
-  .sidebar-header {
-    padding: 12px;
-    flex-shrink: 0; /* Ensure header doesn't shrink */
-  }
-
-  .sidebar-footer {
-    padding: 12px;
-    flex-shrink: 0; /* Ensure footer doesn't shrink (stays visible) */
   }
 }
