@@ -7,7 +7,7 @@
   height: 100vh;
   position: relative;
   z-index: 1000;
-  overflow-y: auto;
+  overflow-y: auto; /* Kept for desktop */
   overflow-x: hidden;
 }
 
@@ -76,10 +76,11 @@
 }
 
 .chat-history {
-  flex: 1;
+  flex: 1; /* Allows it to take up available vertical space */
   padding: 16px;
-  overflow-y: auto;
+  overflow-y: auto; /* Allows only this section to scroll */
   overflow-x: hidden;
+  min-height: 0; /* Important for flex items with overflow */
 }
 
 .chat-history h3 {
@@ -163,7 +164,7 @@
 .account-btn {
   background: none;
   border: none;
-  color: #8e8ea0;
+  color: #2D2D2D; /* Changed color to be more visible against the white-ish background */
   padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -173,11 +174,11 @@
 }
 
 .account-btn:hover {
-  background-color: #2d2d2d;
-  color: #ffffff;
+  background-color: #C2A68C; /* Updated hover color for better contrast */
+  color: #FFFFFF;
 }
 
-/* Mobile styles */
+/* --- Mobile styles --- */
 @media (max-width: 768px) {
   .sidebar {
     width: 240px;
@@ -194,7 +195,8 @@
     transition: transform 0.3s ease;
     transform: translateX(-100%);
     z-index: 1001;
-    overflow-y: auto;
+    /* REMOVED: overflow-y: auto; - The sidebar itself should not scroll */
+    overflow-x: hidden;
   }
 
   .sidebar.open {
@@ -218,8 +220,12 @@
 
   .chat-history {
     padding: 12px;
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
+    /* Make this section the only part that scrolls and fill the remaining space */
+    flex: 1; 
+    min-height: 0; 
+    overflow-y: auto; /* **CRUCIAL:** Only history scrolls on mobile */
+    overflow-x: hidden;
+    /* REMOVED: max-height: calc(100vh - 200px); */
   }
 
   .chat-item {
@@ -229,9 +235,11 @@
 
   .sidebar-header {
     padding: 12px;
+    flex-shrink: 0; /* Ensure header doesn't shrink */
   }
 
   .sidebar-footer {
     padding: 12px;
+    flex-shrink: 0; /* Ensure footer doesn't shrink (stays visible) */
   }
 }
