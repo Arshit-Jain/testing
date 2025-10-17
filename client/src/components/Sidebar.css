@@ -216,18 +216,25 @@
   /*
    * Crucial Fix: Ensure header and footer don't shrink, and history scrolls.
    */
-  .sidebar-header,
-  .sidebar-footer {
-    flex-shrink: 0; /* Ensures these parts keep their size and stay visible */
+  /* Header remains fixed at top */
+  .sidebar-header {
+    flex-shrink: 0;
     padding: 12px;
   }
-
-  .chat-history {
+  
+  .sidebar-footer {
+    flex-shrink: 0;
     padding: 12px;
-    flex: 1; /* Fills the space between the header and footer */
-    min-height: 0; /* Allows flex item to properly handle its overflow */
-    overflow-y: auto; /* Only this section scrolls on mobile */
-    overflow-x: hidden;
+    border-top: 1px solid #C2A68C;
+    background-color: #E8E0D5;
+  }
+
+  /* Chat history scrolls between header and footer */
+  .chat-history {
+    flex: 1; /* fills space between header and footer */
+    overflow-y: auto; /* scrollable */
+    min-height: 0;
+    padding: 12px;
   }
 
   .chat-item {
