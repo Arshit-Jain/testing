@@ -42,11 +42,7 @@ export const useAuth = () => {
   const login = (userData, token) => {
     if (!userData) return
     console.log('🔐 useAuth: Logging in manually:', userData)
-  
-    if (token) {
-      localStorage.setItem('authToken', token) // store JWT for apiClient
-    }
-  
+    if (token) localStorage.setItem('authToken', token) // store JWT
     setUser(userData)
     setIsAuthenticated(true)
   }
