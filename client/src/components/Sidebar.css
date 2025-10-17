@@ -194,6 +194,7 @@
     transition: transform 0.3s ease;
     transform: translateX(-100%);
     z-index: 1001;
+    overflow-y: auto;
   }
 
   .sidebar.open {
@@ -218,6 +219,7 @@
   .chat-history {
     padding: 12px;
     max-height: calc(100vh - 200px);
+    overflow-y: auto;
   }
 
   .chat-item {
