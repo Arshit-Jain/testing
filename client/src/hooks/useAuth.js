@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { authAPI } from '../services/api'
+import axios from "axios"
 
 export const useAuth = () => {
   const [user, setUser] = useState(null)
