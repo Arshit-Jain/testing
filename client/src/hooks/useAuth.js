@@ -6,6 +6,7 @@ export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
+  // ✅ Check auth status with backend
   const checkAuthStatus = useCallback(async () => {
     try {
       console.log('🔍 useAuth: Checking authentication status...')
@@ -33,25 +34,40 @@ export const useAuth = () => {
     }
   }, [])
 
-
+  // ✅ Handle OAuth redirect token
   useEffect(() => {
-    checkAuthStatus()
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('token')
+    const oauthSuccess = params.get('oauth') === 'success'
+
+    if (token && oauthSuccess) {
+      authAPI.oauthComplete(token)
+        .then((data) => {
+          login(data.user, data.token)
+          // Remove query params from URL
+          const cleanUrl = window.location.origin + window.location.pathname
+          window.history.replaceState({}, '', cleanUrl)
+        })
+        .catch(err => console.error('❌ OAuth token verification failed:', err))
+    } else {
+      checkAuthStatus()
+    }
   }, [checkAuthStatus])
 
-
+  // ✅ Login manually (regular JWT login or OAuth)
   const login = (userData, token) => {
     if (!userData) return
-    console.log('🔐 useAuth: Logging in manually:', userData)
-  
+    console.log('🔐 useAuth: Logging in:', userData)
+
     if (token) {
-      localStorage.setItem('authToken', token) // store JWT for apiClient
+      localStorage.setItem('authToken', token) // store JWT
     }
-  
+
     setUser(userData)
     setIsAuthenticated(true)
   }
 
-
+  // ✅ Logout
   const logout = async () => {
     try {
       console.log('🚪 useAuth: Logging out...')
@@ -75,6 +91,6 @@ export const useAuth = () => {
     checkingAuth,
     login,
     logout,
-    checkAuthStatus
+    checkAuthStatus,
   }
 }
