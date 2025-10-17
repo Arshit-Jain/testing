@@ -33,6 +33,17 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+// Add response interceptor to handle 401s
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // If we get a 401, clear the token
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken')
+    }
+    return Promise.reject(error)
+  }
+)
 
 export const authAPI = {
   async checkAuthStatus() {
@@ -41,7 +52,12 @@ export const authAPI = {
       return response.data
     } catch (error) {
       console.error('❌ Auth status check failed:', error.response?.data || error.message)
-      throw error
+      // Return a response indicating not authenticated instead of throwing
+      // This allows the app to handle unauthenticated state gracefully
+      return {
+        authenticated: false,
+        user: null
+      }
     }
   },
 
