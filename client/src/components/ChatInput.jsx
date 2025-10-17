@@ -1,3 +1,5 @@
+// In client/src/components/ChatInput.jsx, update the button disabled state
+
 import { useEffect, useRef } from 'react'
 import './ChatInput.css'
 
@@ -13,7 +15,7 @@ const ChatInput = ({ message, onMessageChange, onSendMessage, autoFocus = false,
   // Determine placeholder text based on research state
   const getPlaceholder = () => {
     if (researchState.awaitingReport) {
-      return "Thank you and wait for report to generate"
+      return "Generating research report... Please wait"
     }
     if (!researchState.isResearchMode) {
       return "Enter your research topic or question..."
@@ -40,17 +42,28 @@ const ChatInput = ({ message, onMessageChange, onSendMessage, autoFocus = false,
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      if (message.trim()) {
+      if (message.trim() && !isButtonDisabled()) {
         onSendMessage()
       }
     }
   }
 
-  // Check if input should be hidden
-  const isHidden = researchState.isCompleted || researchState.hasError
+  // Check if button should be disabled
+  const isButtonDisabled = () => {
+    // Disable if no message
+    if (!message.trim()) return true
+    
+    // Disable if chat is completed or has error
+    if (researchState.isCompleted || researchState.hasError) return true
+    
+    // ❌ REMOVE THIS LINE - it was blocking answers:
+    // if (researchState.awaitingReport) return true
+    
+    return false
+  }
 
   // If chat is completed or has error, don't render the input at all
-  if (isHidden) {
+  if (researchState.isCompleted || researchState.hasError) {
     return null
   }
 
@@ -65,11 +78,12 @@ const ChatInput = ({ message, onMessageChange, onSendMessage, autoFocus = false,
           placeholder={getPlaceholder()}
           className="message-input"
           rows="1"
+          disabled={isButtonDisabled()}
         />
         <button 
           onClick={onSendMessage}
           className="send-btn"
-          disabled={!message.trim() || researchState.awaitingReport}
+          disabled={isButtonDisabled()}
         >
           {getButtonText()}
         </button>

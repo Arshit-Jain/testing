@@ -361,6 +361,8 @@ export const useChat = (isAuthenticated) => {
             newAnswers
           )
           
+          console.log('=== useChat: Clarification answer response ===', data)
+          
           if (data.success) {
             if (data.response) {
               const aiMessage = {
@@ -381,7 +383,7 @@ export const useChat = (isAuthenticated) => {
                 isWaitingForAnswer: false,
                 awaitingReport: true
               }))
-            } else {
+            } else if (data.messageType === 'acknowledgment') {
               console.log('=== useChat: More questions to answer ===')
               // More questions to answer
               setResearchState(prev => ({
@@ -391,6 +393,8 @@ export const useChat = (isAuthenticated) => {
                 isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
               }))
             }
+          } else {
+            throw new Error(data.error || 'Failed to send answer')
           }
         }
       } catch (error) {
