@@ -179,7 +179,6 @@
 }
 
 /* --- Mobile styles --- */
-/* --- Mobile styles --- */
 @media (max-width: 640px) {
   .sidebar {
     position: fixed;
@@ -190,8 +189,10 @@
     transition: transform 0.3s ease;
     transform: translateX(-100%);
     z-index: 1001;
-    /* Removed overflow-y: auto; - The sidebar itself should not scroll */
+    overflow-y: auto; /* ✅ Add this back to allow scrolling */
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .sidebar.open {
@@ -213,15 +214,11 @@
     display: block;
   }
 
-  /*
-   * Crucial Fix: Ensure header and footer don't shrink, and history scrolls.
-   */
-  /* Header remains fixed at top */
   .sidebar-header {
     flex-shrink: 0;
     padding: 12px;
   }
-  
+
   .sidebar-footer {
     flex-shrink: 0;
     padding: 12px;
@@ -229,10 +226,9 @@
     background-color: #E8E0D5;
   }
 
-  /* Chat history scrolls between header and footer */
   .chat-history {
-    flex: 1; /* fills space between header and footer */
-    overflow-y: auto; /* scrollable */
+    flex: 1;
+    overflow-y: auto;
     min-height: 0;
     padding: 12px;
   }
