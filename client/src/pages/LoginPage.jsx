@@ -45,8 +45,8 @@ const LoginPage = () => {
         setProcessingOAuth(true)
         
         try {
-          // Decode and log token data for debugging
-          const decoded = JSON.parse(Buffer.from(token, 'base64').toString())
+          // Decode token using atob (works in browser)
+          const decoded = JSON.parse(atob(token))
           console.log('=== Decoded token data ===', {
             userId: decoded.userId,
             username: decoded.username,
