@@ -54,9 +54,9 @@ const LoginPage = () => {
             timestamp: new Date(decoded.timestamp).toISOString()
           })
           
-          // Exchange token for session
+          // Exchange token for JWT
           const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-          console.log('=== Exchanging token for session ===')
+          console.log('=== Exchanging token for JWT ===')
           console.log('API URL:', API_BASE_URL)
           
           const response = await axios.post(
@@ -72,9 +72,13 @@ const LoginPage = () => {
           
           console.log('=== Token exchange response ===', response.data)
           
-          if (response.data.success && response.data.user) {
-            console.log('=== OAuth session established successfully! ===')
+          if (response.data.success && response.data.user && response.data.token) {
+            console.log('=== OAuth JWT received successfully! ===')
             console.log('User data:', response.data.user)
+            
+            // Save JWT token to localStorage
+            localStorage.setItem('authToken', response.data.token)
+            console.log('=== JWT token saved to localStorage ===')
             
             // Log in user
             login(response.data.user)
@@ -89,7 +93,7 @@ const LoginPage = () => {
             console.log('=== Navigating to /chat ===')
             navigate('/chat', { replace: true })
           } else {
-            console.error('OAuth session creation failed:', response.data)
+            console.error('OAuth JWT creation failed:', response.data)
             setOauthError('Failed to establish session. Please try again.')
           }
         } catch (error) {

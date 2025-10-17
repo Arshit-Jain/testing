@@ -1,20 +1,38 @@
 import axios from 'axios'
 
-// ✅ Always use the environment variable for flexibility
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
-// ✅ Create axios instance with correct CORS + cookie handling
+// Get token from localStorage
+const getAuthToken = () => {
+  return localStorage.getItem('authToken')
+}
+
+// Set token in localStorage
+export const setAuthToken = (token) => {
+  if (token) {
+    localStorage.setItem('authToken', token)
+  } else {
+    localStorage.removeItem('authToken')
+  }
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // CRUCIAL: sends cookies across origins
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// -----------------------------
-// 🔐 AUTHENTICATION API
-// -----------------------------
+// Add token to all requests
+apiClient.interceptors.request.use((config) => {
+  const token = getAuthToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
 export const authAPI = {
   async checkAuthStatus() {
     try {
@@ -29,6 +47,9 @@ export const authAPI = {
   async login(username, password) {
     try {
       const response = await apiClient.post('/api/login', { username, password })
+      if (response.data.success && response.data.token) {
+        setAuthToken(response.data.token)
+      }
       return response.data
     } catch (error) {
       console.error('❌ Login failed:', error.response?.data || error.message)
@@ -39,6 +60,9 @@ export const authAPI = {
   async register(username, email, password) {
     try {
       const response = await apiClient.post('/api/register', { username, email, password })
+      if (response.data.success && response.data.token) {
+        setAuthToken(response.data.token)
+      }
       return response.data
     } catch (error) {
       console.error('❌ Registration failed:', error.response?.data || error.message)
@@ -48,6 +72,7 @@ export const authAPI = {
 
   async logout() {
     try {
+      setAuthToken(null)
       const response = await apiClient.post('/api/logout')
       return response.data
     } catch (error) {
