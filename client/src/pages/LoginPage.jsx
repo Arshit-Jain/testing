@@ -52,11 +52,14 @@ const LoginPage = () => {
           const payloadBase64 = jwtParts[1].replace(/-/g, '+').replace(/_/g, '/')
           const decodedPayload = JSON.parse(atob(payloadBase64))
 
+          const ts = decodedPayload.timestamp ? new Date(decodedPayload.timestamp) : null
+          const timestampISO = ts && !isNaN(ts.getTime()) ? ts.toISOString() : null;
+
           console.log('=== Decoded JWT payload ===', {
             userId: decodedPayload.userId,
             username: decodedPayload.username,
             email: decodedPayload.email,
-            timestamp: new Date(decodedPayload.timestamp).toISOString()
+            timestamp: timestampISO
           })
 
           // Exchange token for JWT from backend
