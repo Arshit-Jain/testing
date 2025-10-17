@@ -90,18 +90,10 @@ const LoginPage = () => {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
+        width: '100%',
         background: 'linear-gradient(135deg, #F5F5F0 0%, #E6D8C3 50%, #C2A68C 100%)'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid #E6D8C3',
-            borderTop: '4px solid #5D866C',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px'
-          }}></div>
           <p style={{ color: '#2D2D2D' }}>Checking authentication...</p>
         </div>
       </div>
