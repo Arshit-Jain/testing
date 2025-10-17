@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { authAPI } from '../services/api'
-import authenticateJWT from "../middleware/auth.js";
 
 export const useAuth = () => {
   const [user, setUser] = useState(null)
