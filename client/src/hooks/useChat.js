@@ -265,162 +265,161 @@ export const useChat = (isAuthenticated) => {
   }
 
   const handleSendMessage = async () => {
-    if (newMessage.trim() && activeChat && !researchState.isCompleted && !researchState.hasError) {
-      console.log('=== useChat: Starting message send ===', { 
-        activeChat, 
-        newMessage, 
-        researchState 
+    if (!newMessage.trim() || !activeChat || researchState.isCompleted || researchState.hasError) {
+      console.log('=== useChat: Message send blocked ===', {
+        hasMessage: !!newMessage.trim(),
+        hasActiveChat: !!activeChat,
+        isCompleted: researchState.isCompleted,
+        hasError: researchState.hasError
       })
+      return
+    }
+  
+    console.log('=== useChat: handleSendMessage START ===', { 
+      message: newMessage,
+      isResearchMode: researchState.isResearchMode,
+      isWaitingForAnswer: researchState.isWaitingForAnswer
+    })
+    
+    // Store the message and clear input immediately
+    const userMessageText = newMessage
+    setNewMessage('')
+    
+    // Add user message to display
+    const userMessage = {
+      id: `msg-${Date.now()}-user`,
+      text: userMessageText,
+      isUser: true
+    }
+    
+    console.log('=== useChat: Adding user message to state ===', userMessage)
+    setMessages(prev => [...prev, userMessage])
+    
+    try {
+      setLoading(true)
       
-      const userMessage = {
-        id: Date.now(),
-        text: newMessage,
-        isUser: true
-      }
-      setMessages([...messages, userMessage])
-      const currentMessage = newMessage
-      setNewMessage('')
-      
-      try {
-        setLoading(true)
+      // FIRST MESSAGE - Start research
+      if (!researchState.isResearchMode) {
+        console.log('=== useChat: FIRST MESSAGE - Starting research mode ===')
         
-        // Determine which API endpoint to call based on research state
-        if (!researchState.isResearchMode) {
-          console.log('=== useChat: First message - treating as research topic ===')
-          // First message - treat as research topic
-          setResearchState(prev => ({
-            ...prev,
-            isResearchMode: true,
-            originalTopic: currentMessage
-          }))
-          
-          const data = await chatAPI.sendResearchTopic(activeChat, currentMessage)
-          
-          if (data.success) {
-            // If server returned both research pages, replace any Gemini placeholder and append OpenAI then Gemini
-            if (data.messageType === 'research_pages') {
-              setMessages(prev => {
-                const filtered = prev.filter(m => {
-                  const t = (m.text || '')
-                  const isPlaceholder = typeof m.id === 'string' && m.id.startsWith('gemini-placeholder-')
-                  const isPlaceholderText = t.includes('Gemini (Google) Research') && t.includes('Generating summary and insights')
-                  return !(isPlaceholder || isPlaceholderText)
-                })
-                const newMessages = []
-                if (data.openaiResearch) {
-                  newMessages.push({ id: Date.now() + 1, text: data.openaiResearch, isUser: false })
-                }
-                if (data.geminiResearch) {
-                  newMessages.push({ id: Date.now() + 2, text: data.geminiResearch, isUser: false })
-                }
-                return [...filtered, ...newMessages]
-              })
-            } else {
-              const aiMessage = {
-                id: Date.now() + 1,
-                text: data.response,
-                isUser: false
-              }
-              setMessages(prev => [...prev, aiMessage])
-            }
-            
-            // Handle clarifying questions response
-            if (data.messageType === 'clarifying_questions' && data.questions) {
-              console.log('=== useChat: Received clarifying questions ===', data.questions)
-              setResearchState(prev => ({
-                ...prev,
-                clarifyingQuestions: data.questions,
-                isWaitingForAnswer: true,
-                currentQuestionIndex: 0
-              }))
-            }
-            
-            // Handle title update
-            if (data.title) {
-              console.log('=== useChat: Updating chat title ===', data.title)
-              await loadChats()
-            }
-          }
-        } else if (researchState.isWaitingForAnswer) {
-          console.log('=== useChat: Answering clarifying question ===', {
-            currentQuestionIndex: researchState.currentQuestionIndex,
-            totalQuestions: researchState.clarifyingQuestions.length
-          })
-          
-          // Answering clarifying questions
-          const newAnswers = [...researchState.answers, currentMessage]
-          const nextQuestionIndex = researchState.currentQuestionIndex + 1
-          
-          const data = await chatAPI.sendClarificationAnswer(
-            activeChat, 
-            currentMessage, 
-            researchState.currentQuestionIndex,
-            researchState.clarifyingQuestions.length,
-            researchState.originalTopic,
-            researchState.clarifyingQuestions,
-            newAnswers
-          )
-          
-          console.log('=== useChat: Clarification answer response ===', data)
-          
-          if (data.success) {
-            if (data.response) {
-              const aiMessage = {
-                id: Date.now() + 1,
-                text: data.response,
-                isUser: false
-              }
-              setMessages(prev => [...prev, aiMessage])
-            }
-            
-            // Update research state
-            if (data.messageType === 'research_pages') {
-              console.log('=== useChat: Research page generated, will poll for updates ===')
-              // All questions answered, research started - polling will handle updates
-              setResearchState(prev => ({
-                ...prev,
-                answers: newAnswers,
-                isWaitingForAnswer: false,
-                awaitingReport: true
-              }))
-            } else if (data.messageType === 'acknowledgment') {
-              console.log('=== useChat: More questions to answer ===')
-              // More questions to answer
-              setResearchState(prev => ({
-                ...prev,
-                answers: newAnswers,
-                currentQuestionIndex: nextQuestionIndex,
-                isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
-              }))
-            }
-          } else {
-            throw new Error(data.error || 'Failed to send answer')
-          }
-        }
-      } catch (error) {
-        console.error('=== useChat: Chat error ===', error)
-        
-        // Re-throw authentication errors to be handled by parent
-        if (error.message === 'Authentication required') {
-          throw error
-        }
-        
-        const errorMessage = {
-          id: Date.now() + 1,
-          text: "I'm not able to find the answer right now. Please try again.",
-          isUser: false
-        }
-        setMessages(prev => [...prev, errorMessage])
-        
-        // Mark chat as having an error to prevent further messages
         setResearchState(prev => ({
           ...prev,
-          hasError: true,
-          isCompleted: false
+          isResearchMode: true,
+          originalTopic: userMessageText
         }))
-      } finally {
-        setLoading(false)
+        
+        const data = await chatAPI.sendResearchTopic(activeChat, userMessageText)
+        console.log('=== useChat: Research topic response ===', data)
+        
+        if (data.success) {
+          if (data.response) {
+            const aiMessage = {
+              id: `msg-${Date.now()}-ai`,
+              text: data.response,
+              isUser: false
+            }
+            console.log('=== useChat: Adding AI response ===', aiMessage)
+            setMessages(prev => [...prev, aiMessage])
+          }
+          
+          // Clarifying questions
+          if (data.messageType === 'clarifying_questions' && data.questions) {
+            console.log('=== useChat: Got clarifying questions ===', data.questions)
+            setResearchState(prev => ({
+              ...prev,
+              clarifyingQuestions: data.questions || [],
+              isWaitingForAnswer: true,
+              currentQuestionIndex: 0,
+              answers: []
+            }))
+          }
+          
+          // Update title
+          if (data.title) {
+            await loadChats()
+          }
+        } else {
+          throw new Error(data.error || 'Failed to send research topic')
+        }
       }
+      // CLARIFYING ANSWER - Answer questions
+      else if (researchState.isWaitingForAnswer) {
+        console.log('=== useChat: ANSWERING QUESTION ===', {
+          questionIndex: researchState.currentQuestionIndex,
+          totalQuestions: researchState.clarifyingQuestions.length
+        })
+        
+        const newAnswers = [...researchState.answers, userMessageText]
+        const nextQuestionIndex = researchState.currentQuestionIndex + 1
+        const isLastQuestion = nextQuestionIndex >= researchState.clarifyingQuestions.length
+        
+        const data = await chatAPI.sendClarificationAnswer(
+          activeChat, 
+          userMessageText, 
+          researchState.currentQuestionIndex,
+          researchState.clarifyingQuestions.length,
+          researchState.originalTopic,
+          researchState.clarifyingQuestions,
+          newAnswers
+        )
+        
+        console.log('=== useChat: Clarification answer response ===', data)
+        
+        if (data.success) {
+          if (data.response) {
+            const aiMessage = {
+              id: `msg-${Date.now()}-ai`,
+              text: data.response,
+              isUser: false
+            }
+            console.log('=== useChat: Adding AI response to clarification ===', aiMessage)
+            setMessages(prev => [...prev, aiMessage])
+          }
+          
+          // Check if research started (last question answered)
+          if (data.messageType === 'research_pages' || isLastQuestion) {
+            console.log('=== useChat: All questions answered, research starting ===')
+            setResearchState(prev => ({
+              ...prev,
+              answers: newAnswers,
+              isWaitingForAnswer: false,
+              awaitingReport: true
+            }))
+          } else {
+            console.log('=== useChat: Moving to next question ===', { nextQuestionIndex })
+            setResearchState(prev => ({
+              ...prev,
+              answers: newAnswers,
+              currentQuestionIndex: nextQuestionIndex,
+              isWaitingForAnswer: true
+            }))
+          }
+        } else {
+          throw new Error(data.error || 'Failed to send answer')
+        }
+      }
+    } catch (error) {
+      console.error('=== useChat: Error in handleSendMessage ===', error)
+      
+      if (error.message === 'Authentication required') {
+        throw error
+      }
+      
+      const errorMessage = {
+        id: `msg-${Date.now()}-error`,
+        text: `Error: ${error.message}`,
+        isUser: false
+      }
+      console.log('=== useChat: Adding error message ===', errorMessage)
+      setMessages(prev => [...prev, errorMessage])
+      
+      setResearchState(prev => ({
+        ...prev,
+        hasError: true,
+        isCompleted: false
+      }))
+    } finally {
+      setLoading(false)
     }
   }
 
