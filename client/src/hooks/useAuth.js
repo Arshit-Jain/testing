@@ -10,7 +10,7 @@ export const useAuth = () => {
   const checkAuthStatus = async () => {
     const token = localStorage.getItem("authToken"); // Get token from localStorage
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/auth/status`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/status`, {
         headers: token
           ? { Authorization: `Bearer ${token}` } // Attach token
           : undefined,
