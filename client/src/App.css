@@ -12,9 +12,15 @@ body {
   overflow: hidden;
 }
 
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
 #root {
   height: 100vh;
   display: flex;
+  overflow: hidden;
 }
 
 .app {
@@ -33,6 +39,7 @@ body {
   height: 100vh;
   position: relative;
   width: 100%;
+  overflow: hidden;
 }
 
 .chat-container {
@@ -40,65 +47,19 @@ body {
   flex-direction: column;
   height: 100%;
   width: 100%;
-}
-
-/* Loading Animation Styles */
-.loading-message {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.typing-indicator {
-  display: flex;
-  gap: 4px;
-}
-
-.typing-indicator span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #7f8c8d;
-  animation: typing 1.4s infinite ease-in-out;
-}
-
-.typing-indicator span:nth-child(1) {
-  animation-delay: -0.32s;
-}
-
-.typing-indicator span:nth-child(2) {
-  animation-delay: -0.16s;
-}
-
-.typing-indicator span:nth-child(3) {
-  animation-delay: 0s;
-}
-
-@keyframes typing {
-  0%, 80%, 100% {
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.loading-message p {
-  margin: 0;
-  color: #7f8c8d;
-  font-style: italic;
+  overflow: hidden;
 }
 
 .messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Scrollbar Styling */
@@ -150,40 +111,53 @@ body {
   font-size: 16px;
 }
 
-/* Mobile responsive adjustments */
-@media (max-width: 640px) {
-  .app {
-    flex-direction: column;
-    height: 100vh;
+/* Loading Animation Styles */
+.loading-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #7f8c8d;
+  animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
   }
-  
-  .main-content {
-    height: calc(100vh - 60px);
-    margin-top: 60px;
-    position: relative;
-    overflow: hidden;
+  40% {
+    transform: scale(1);
+    opacity: 1;
   }
-  
-  .chat-container {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  
-  .messages {
-    flex: 1;
-    padding: 15px 10px;
-    overflow-y: auto;
-    padding-bottom: 10px;
-  }
-  
-  .input-container {
-    position: sticky;
-    bottom: 0;
-    z-index: 100;
-    flex-shrink: 0;
-  }
+}
+
+.loading-message p {
+  margin: 0;
+  color: #7f8c8d;
+  font-style: italic;
 }
 
 /* Email Section Styles */
@@ -192,6 +166,7 @@ body {
   background: #E6D8C3;
   border-top: 1px solid #E6D8C3;
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 .email-container {
@@ -237,6 +212,7 @@ body {
   transition: all 0.3s ease;
   white-space: nowrap;
   min-width: 180px;
+  flex-shrink: 0;
 }
 
 .email-btn:hover:not(:disabled) {
@@ -250,16 +226,89 @@ body {
   transform: none;
 }
 
-/* Mobile responsive email section */
+/* Mobile responsive adjustments */
 @media (max-width: 768px) {
+  #root {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .app {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .main-content {
+    height: calc(100vh - 60px);
+    margin-top: 60px;
+  }
+
+  .chat-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .messages {
+    flex: 1;
+    padding: 15px 10px;
+    overflow-y: auto;
+    padding-bottom: 80px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .input-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    flex-shrink: 0;
+  }
+
   .email-container {
     flex-direction: column;
     text-align: center;
     gap: 16px;
+    padding: 16px;
   }
-  
+
   .email-btn {
     width: 100%;
     min-width: auto;
+  }
+
+  .email-info h3 {
+    font-size: 16px;
+  }
+
+  .email-info p {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 640px) {
+  .messages {
+    padding: 10px 8px;
+    padding-bottom: 70px;
+  }
+
+  .email-section {
+    padding: 12px;
+  }
+
+  .email-container {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .email-info h3 {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .email-info p {
+    font-size: 12px;
   }
 }
