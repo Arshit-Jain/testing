@@ -5,75 +5,78 @@ import { useAuth } from '../hooks/useAuth'
 import { authAPI } from '../services/api'
 
 const LoginPage = () => {
-  const { isAuthenticated, login, checkingAuth } = useAuth()
+  const { isAuthenticated, login, checkingAuth, checkAuthStatus } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [additionalCheck, setAdditionalCheck] = useState(true)
+  const [additionalCheck, setAdditionalCheck] = useState(false)
 
-  // Additional check after OAuth redirect
+  // Check for OAuth redirect and verify authentication
   useEffect(() => {
     const checkAuthAfterOAuth = async () => {
-      try {
-        console.log('=== LoginPage: Starting auth check ===')
-        console.log('Current URL:', window.location.href)
-        console.log('Search params:', Object.fromEntries(searchParams.entries()))
-        
-        // Check if there's an error from OAuth
-        const error = searchParams.get('error')
-        if (error) {
-          console.error('OAuth error:', error)
-          setAdditionalCheck(false)
-          return
-        }
-
-        // Small delay to ensure cookies are set
-        await new Promise(resolve => setTimeout(resolve, 500))
-
-        // Check authentication status
-        console.log('=== LoginPage: Calling checkAuthStatus ===')
-        const data = await authAPI.checkAuthStatus()
-        console.log('=== LoginPage: Auth check result ===', data)
-        
-        if (data.authenticated && data.user) {
-          console.log('=== LoginPage: User is authenticated! ===', data.user)
-          login(data.user)
-          // Use a small delay before navigation
-          setTimeout(() => {
-            navigate('/chat', { replace: true })
-          }, 100)
-        } else {
-          console.log('=== LoginPage: User NOT authenticated ===')
-        }
-      } catch (error) {
-        console.error('=== LoginPage: Auth check error ===', error)
-        console.error('Error details:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status
-        })
-      } finally {
+      const oauthSuccess = searchParams.get('oauth')
+      const error = searchParams.get('error')
+      
+      if (error) {
+        console.error('OAuth error:', error, searchParams.get('message'))
         setAdditionalCheck(false)
+        return
+      }
+
+      if (oauthSuccess === 'success') {
+        console.log('=== OAuth success detected, checking auth status ===')
+        setAdditionalCheck(true)
+        
+        // Wait a bit longer for session cookies to propagate
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        try {
+          // Force a fresh auth check
+          await checkAuthStatus()
+          
+          // Give it another moment
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Check again
+          const data = await authAPI.checkAuthStatus()
+          console.log('=== Auth check result after OAuth ===', data)
+          
+          if (data.authenticated && data.user) {
+            console.log('=== User authenticated via OAuth! ===', data.user)
+            login(data.user)
+            
+            // Clean URL and redirect
+            window.history.replaceState({}, '', '/login')
+            setTimeout(() => {
+              navigate('/chat', { replace: true })
+            }, 100)
+          } else {
+            console.log('=== Auth check failed after OAuth ===')
+            // Clear the oauth parameter
+            window.history.replaceState({}, '', '/login')
+          }
+        } catch (error) {
+          console.error('=== Auth check error ===', error)
+        } finally {
+          setAdditionalCheck(false)
+        }
       }
     }
 
-    // Wait for initial auth check from useAuth to complete
-    if (!checkingAuth && !isAuthenticated) {
+    if (!checkingAuth) {
       checkAuthAfterOAuth()
-    } else if (!checkingAuth && isAuthenticated) {
-      setAdditionalCheck(false)
     }
-  }, [checkingAuth, isAuthenticated])
+  }, [searchParams, checkingAuth])
 
   // Redirect if authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('=== LoginPage: isAuthenticated is true, redirecting to /chat ===')
+      console.log('=== User is authenticated, redirecting to /chat ===')
       navigate('/chat', { replace: true })
     }
   }, [isAuthenticated, navigate])
 
   const handleLogin = (userData) => {
-    console.log('=== LoginPage: Manual login ===', userData)
+    console.log('=== Manual login ===', userData)
     login(userData)
     navigate('/chat', { replace: true })
   }
@@ -94,7 +97,9 @@ const LoginPage = () => {
         background: 'linear-gradient(135deg, #F5F5F0 0%, #E6D8C3 50%, #C2A68C 100%)'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ color: '#2D2D2D' }}>Checking authentication...</p>
+          <p style={{ color: '#2D2D2D' }}>
+            {additionalCheck ? 'Completing Google sign in...' : 'Checking authentication...'}
+          </p>
         </div>
       </div>
     )
