@@ -21,6 +21,18 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, isOpen, onClose, 
             </div>
           </div>
         </div>
+
+        <div className="sidebar-footer">
+          <div className="account-section">
+            <div className="account-info">
+              <div className="avatar">{user?.username?.charAt(0).toUpperCase() || 'U'}</div>
+              <span>{user?.username || 'User Account'}</span>
+            </div>
+            <div className="account-options">
+              <button className="account-btn" onClick={onLogout}>Logout</button>
+            </div>
+          </div>
+        </div>
         
         <div className="chat-history">
           <h3>Recent Chats</h3>
@@ -35,17 +47,6 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, isOpen, onClose, 
           ))}
         </div>
 
-        <div className="sidebar-footer">
-          <div className="account-section">
-            <div className="account-info">
-              <div className="avatar">{user?.username?.charAt(0).toUpperCase() || 'U'}</div>
-              <span>{user?.username || 'User Account'}</span>
-            </div>
-            <div className="account-options">
-              <button className="account-btn" onClick={onLogout}>Logout</button>
-            </div>
-          </div>
-        </div>
       </div>
     </>
   )
