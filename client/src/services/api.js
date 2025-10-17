@@ -26,12 +26,13 @@ const apiClient = axios.create({
 
 // Add token to all requests
 apiClient.interceptors.request.use((config) => {
-  const token = getAuthToken()
+  const token = localStorage.getItem('authToken')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
+
 
 export const authAPI = {
   async checkAuthStatus() {
