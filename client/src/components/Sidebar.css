@@ -125,6 +125,7 @@
   background-color: #E8E0D5;
   border-top: none; 
   flex-shrink: 0;
+  border-bottom: 1px solid #C2A68C
 }
 
 .account-section {
@@ -225,6 +226,7 @@
     padding: 12px;
     border-top: 1px solid #C2A68C;
     background-color: #E8E0D5;
+    border-bottom: 1px solid #C2A68C
   }
 
   .chat-history {
