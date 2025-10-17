@@ -39,9 +39,14 @@ export const useAuth = () => {
   }, [checkAuthStatus])
 
 
-  const login = (userData) => {
+  const login = (userData, token) => {
     if (!userData) return
     console.log('🔐 useAuth: Logging in manually:', userData)
+  
+    if (token) {
+      localStorage.setItem('authToken', token) // store JWT for apiClient
+    }
+  
     setUser(userData)
     setIsAuthenticated(true)
   }
@@ -51,6 +56,7 @@ export const useAuth = () => {
     try {
       console.log('🚪 useAuth: Logging out...')
       await authAPI.logout()
+      localStorage.removeItem('authToken') // remove JWT
     } catch (error) {
       console.error('❌ useAuth: Logout failed:', {
         message: error.message,
