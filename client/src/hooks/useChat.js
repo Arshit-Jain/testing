@@ -63,7 +63,6 @@ export const useChat = (isAuthenticated) => {
     // Start polling if:
     // 1. We have an active chat
     // 2. Research is in progress (not completed and no error)
-    // 3. We don't have both reports yet
     const shouldPoll = activeChat && 
                       !researchState.isCompleted && 
                       !researchState.hasError &&
@@ -323,18 +322,7 @@ export const useChat = (isAuthenticated) => {
                 awaitingReport: true,
                 isCompleted: true // Should only happen if there were no questions
               }))
-            } else if (data.messageType !== 'clarifying_questions') {
-              // --- START CHANGE ---
-              // Only add the response if it's NOT clarifying_questions
-              // (we handle that message type below)
-              const aiMessage = {
-                id: Date.now() + 1,
-                text: data.response,
-                isUser: false
-              }
-              setMessages(prev => [...prev, aiMessage])
-              // --- END CHANGE ---
-            }
+            } 
             
             // Handle clarifying questions response
             if (data.messageType === 'clarifying_questions' && data.questions) {
@@ -346,7 +334,6 @@ export const useChat = (isAuthenticated) => {
                 currentQuestionIndex: 0
               }))
               
-              // --- START CHANGE ---
               // Add the intro message ("I want to ask...") first
               const introMessage = {
                 id: Date.now() + 1,
@@ -354,10 +341,10 @@ export const useChat = (isAuthenticated) => {
                 isUser: false
               };
               
-              // Then add the first question
+              // Then add the first question, formatted as "Question 1:"
               const firstQuestionMessage = {
                 id: Date.now() + 3,
-                text: `Question 1: ${data.questions[0]}`, // Change text to "Question 1: ..."
+                text: `Question 1: ${data.questions[0]}`, 
                 isUser: false,
               };
 
@@ -366,8 +353,15 @@ export const useChat = (isAuthenticated) => {
                 introMessage,
                 firstQuestionMessage
               ])
-              // --- END CHANGE ---
-            } 
+            } else if (data.response && data.messageType !== 'clarifying_questions') {
+              // This handles the case where there are no questions and a normal response comes back
+              const aiMessage = {
+                id: Date.now() + 1,
+                text: data.response,
+                isUser: false
+              }
+              setMessages(prev => [...prev, aiMessage])
+            }
             
             // Handle title update
             if (data.title) {
@@ -428,12 +422,9 @@ export const useChat = (isAuthenticated) => {
               }))
               
             } else if (data.messageType === 'acknowledgment') {
-              // --- START BUG FIX (Continuous Flow) ---
-              // More questions to answer. We assume 1 answer was provided.
-              const answersProvidedInThisMessage = 1 // Enforce a step-by-step UI flow
+              // This is the desired flow: advance index by 1 and show the next question
+              const answersProvidedInThisMessage = 1 
               const nextQuestionIndex = researchState.currentQuestionIndex + answersProvidedInThisMessage
-              
-              // DO NOT add the data.response ("Thank you..." or "Answer received...") to the messages.
               
               // Update research state
               setResearchState(prev => {
@@ -444,16 +435,15 @@ export const useChat = (isAuthenticated) => {
                   isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
                 };
                 
-                // If there is another clarifying question, add it as an assistant message
+                // If there is another clarifying question, immediately display it.
                 if (nextQuestionIndex < prev.clarifyingQuestions.length) {
                   setMessages(messagesSoFar => {
                     const nextQuestion = prev.clarifyingQuestions[nextQuestionIndex];
-                    // Append the next question *immediately* after the user's answer (we skipped the "Thank you" message)
                     return [
                       ...messagesSoFar,
                       {
                         id: Date.now() + 4,
-                        text: `Question ${nextQuestionIndex + 1}: ${nextQuestion}`, // Change text to "Question X: ..."
+                        text: `Question ${nextQuestionIndex + 1}: ${nextQuestion}`,
                         isUser: false,
                       },
                     ]
@@ -461,7 +451,6 @@ export const useChat = (isAuthenticated) => {
                 }
                 return updatedState;
               })
-              // --- END BUG FIX ---
             }
           }
         }
@@ -549,18 +538,6 @@ export const useChat = (isAuthenticated) => {
           
           if (data.success) {
             
-            // --- START CHANGE ---
-            // DO NOT add the data.response if it's clarifying_questions
-            if (data.messageType !== 'clarifying_questions') {
-              const aiMessage = {
-                id: Date.now() + 1,
-                text: data.response,
-                isUser: false
-              }
-              setMessages(prev => [...prev, aiMessage])
-            }
-            // --- END CHANGE ---
-            
             // Handle clarifying questions response
             if (data.messageType === 'clarifying_questions' && data.questions) {
               console.log('=== useChat: Received clarifying questions for new chat ===', data.questions)
@@ -571,7 +548,6 @@ export const useChat = (isAuthenticated) => {
                 currentQuestionIndex: 0
               }))
               
-              // --- START CHANGE ---
               // Add the intro message ("I want to ask...") first
               const introMessage = {
                 id: Date.now() + 1,
@@ -579,10 +555,10 @@ export const useChat = (isAuthenticated) => {
                 isUser: false
               };
               
-              // Then add the first question
+              // Then add the first question, formatted as "Question 1:"
               const firstQuestionMessage = {
                 id: Date.now() + 3,
-                text: `Question 1: ${data.questions[0]}`, // Change text to "Question 1: ..."
+                text: `Question 1: ${data.questions[0]}`,
                 isUser: false,
               };
 
@@ -591,7 +567,13 @@ export const useChat = (isAuthenticated) => {
                 introMessage,
                 firstQuestionMessage
               ])
-              // --- END CHANGE ---
+            } else if (data.response && data.messageType !== 'clarifying_questions') {
+              const aiMessage = {
+                id: Date.now() + 1,
+                text: data.response,
+                isUser: false
+              }
+              setMessages(prev => [...prev, aiMessage])
             }
             
             // Handle title update
@@ -715,4 +697,3 @@ export const useChat = (isAuthenticated) => {
     loadChatsOnDemand
   }
 }
-
