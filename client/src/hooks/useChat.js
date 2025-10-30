@@ -324,19 +324,12 @@ export const useChat = (isAuthenticated) => {
               }))
             } 
             
-            // Handle clarifying questions response - FIXED VERSION
-            if (data.messageType === 'clarifying_questions' && data.questions) {
+            // Handle clarifying questions response
+            else if (data.messageType === 'clarifying_questions' && data.questions) {
               console.log('=== useChat: Received clarifying questions ===', {
                 questions: data.questions,
                 response: data.response
               })
-              
-              setResearchState(prev => ({
-                ...prev,
-                clarifyingQuestions: data.questions,
-                isWaitingForAnswer: true,
-                currentQuestionIndex: 0
-              }))
               
               // Build messages to add
               const messagesToAdd = []
@@ -358,8 +351,19 @@ export const useChat = (isAuthenticated) => {
               })
 
               console.log('=== useChat: Adding messages to UI ===', messagesToAdd)
+              
+              // Update messages first
               setMessages(prev => [...prev, ...messagesToAdd])
-            } else if (data.response && data.messageType !== 'clarifying_questions') {
+              
+              // Then update research state
+              setResearchState(prev => ({
+                ...prev,
+                clarifyingQuestions: data.questions,
+                isWaitingForAnswer: true,
+                currentQuestionIndex: 0
+              }))
+            } 
+            else if (data.response && data.messageType !== 'clarifying_questions') {
               // This handles the case where there are no questions and a normal response comes back
               const aiMessage = {
                 id: Date.now() + 1,
@@ -399,25 +403,25 @@ export const useChat = (isAuthenticated) => {
               console.log('=== useChat: Research page generated, will poll for updates ===')
               
               // Display research pages immediately if returned
-              setMessages(prev => {
-                const newMessages = []
-                if (data.openaiResearch) {
-                  newMessages.push({ id: Date.now() + 1, text: data.openaiResearch, isUser: false })
-                }
-                // Check if Gemini message is returned directly or needs polling
-                if (data.geminiResearch) {
-                  newMessages.push({ id: Date.now() + 2, text: data.geminiResearch, isUser: false })
-                } else if (data.openaiResearch) {
-                   // If OpenAI is here but Gemini isn't, add placeholder to trigger polling
-                   newMessages.push({
-                      id: `gemini-placeholder-${Date.now() + 2}`,
-                      text: '## Gemini (Google) Research\n\nGenerating summary and insights...'
-                        + '\n\n(Please keep this tab open; the Gemini section will appear shortly.)',
-                      isUser: false
-                    })
-                }
-                return [...prev, ...newMessages]
-              })
+              const newMessages = []
+              if (data.openaiResearch) {
+                newMessages.push({ id: Date.now() + 1, text: data.openaiResearch, isUser: false })
+              }
+              // Check if Gemini message is returned directly or needs polling
+              if (data.geminiResearch) {
+                newMessages.push({ id: Date.now() + 2, text: data.geminiResearch, isUser: false })
+              } else if (data.openaiResearch) {
+                 // If OpenAI is here but Gemini isn't, add placeholder to trigger polling
+                 newMessages.push({
+                    id: `gemini-placeholder-${Date.now() + 2}`,
+                    text: '## Gemini (Google) Research\n\nGenerating summary and insights...'
+                      + '\n\n(Please keep this tab open; the Gemini section will appear shortly.)',
+                    isUser: false
+                  })
+              }
+              
+              // Update messages
+              setMessages(prev => [...prev, ...newMessages])
               
               // All questions answered, research started - polling will handle completion status
               setResearchState(prev => ({
@@ -428,41 +432,50 @@ export const useChat = (isAuthenticated) => {
               }))
               
             } else if (data.messageType === 'acknowledgment') {
-              console.log('=== useChat: Received acknowledgment, preparing next question update ===')
-              
               // This is the desired flow: advance index by 1 and show the next question
               const answersProvidedInThisMessage = 1 
               const nextQuestionIndex = researchState.currentQuestionIndex + answersProvidedInThisMessage
-              const totalQuestions = researchState.clarifyingQuestions.length
-
-              // 1. Update research state first
-              setResearchState(prev => {
-                return {
-                  ...prev,
-                  answers: newAnswers,
-                  currentQuestionIndex: nextQuestionIndex,
-                  isWaitingForAnswer: nextQuestionIndex < totalQuestions
-                }
-              })
-
-              // 2. If there is another clarifying question, display it immediately (outside of setResearchState)
-              if (nextQuestionIndex < totalQuestions) {
-                const nextQuestion = researchState.clarifyingQuestions[nextQuestionIndex];
-                
-                // Use a stable ID format
-                const questionId = `local-q-${activeChat}-${nextQuestionIndex}-${Date.now()}`
-                
-                setMessages(messagesSoFar => {
-                  return [
-                    ...messagesSoFar,
-                    {
-                      id: questionId,
-                      text: `**Question ${nextQuestionIndex + 1} of ${totalQuestions}:**\n\n${nextQuestion}`,
-                      isUser: false,
-                    },
-                  ]
+              
+              // Build all messages to add BEFORE updating state
+              const messagesToAdd = []
+              
+              // Add acknowledgment response if exists
+              if (data.response && data.response.trim()) {
+                messagesToAdd.push({
+                  id: Date.now() + 3,
+                  text: data.response,
+                  isUser: false
                 })
               }
+              
+              // Add next question if there is one
+              if (nextQuestionIndex < researchState.clarifyingQuestions.length) {
+                const nextQuestion = researchState.clarifyingQuestions[nextQuestionIndex]
+                messagesToAdd.push({
+                  id: Date.now() + 4,
+                  text: `**Question ${nextQuestionIndex + 1} of ${researchState.clarifyingQuestions.length}:**\n\n${nextQuestion}`,
+                  isUser: false
+                })
+              }
+              
+              console.log('=== useChat: Adding acknowledgment messages ===', {
+                messagesToAdd,
+                nextQuestionIndex,
+                totalQuestions: researchState.clarifyingQuestions.length
+              })
+              
+              // Update messages ONCE
+              if (messagesToAdd.length > 0) {
+                setMessages(prev => [...prev, ...messagesToAdd])
+              }
+              
+              // Update research state SEPARATELY
+              setResearchState(prev => ({
+                ...prev,
+                answers: newAnswers,
+                currentQuestionIndex: nextQuestionIndex,
+                isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
+              }))
             }
           }
         }
@@ -550,19 +563,12 @@ export const useChat = (isAuthenticated) => {
           
           if (data.success) {
             
-            // Handle clarifying questions response - FIXED VERSION
+            // Handle clarifying questions response
             if (data.messageType === 'clarifying_questions' && data.questions) {
               console.log('=== useChat: Received clarifying questions for new chat ===', {
                 questions: data.questions,
                 response: data.response
               })
-              
-              setResearchState(prev => ({
-                ...prev,
-                clarifyingQuestions: data.questions,
-                isWaitingForAnswer: true,
-                currentQuestionIndex: 0
-              }))
               
               // Build messages to add
               const messagesToAdd = []
@@ -584,7 +590,17 @@ export const useChat = (isAuthenticated) => {
               })
 
               console.log('=== useChat: Adding messages to UI for new chat ===', messagesToAdd)
+              
+              // Update messages first
               setMessages(prev => [...prev, ...messagesToAdd])
+              
+              // Then update research state
+              setResearchState(prev => ({
+                ...prev,
+                clarifyingQuestions: data.questions,
+                isWaitingForAnswer: true,
+                currentQuestionIndex: 0
+              }))
             } else if (data.response && data.messageType !== 'clarifying_questions') {
               const aiMessage = {
                 id: Date.now() + 1,
