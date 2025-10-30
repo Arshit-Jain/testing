@@ -391,23 +391,26 @@ export const useChat = (isAuthenticated) => {
               }))
             } else {
               // More questions to answer
-              setResearchState(prev => ({
-                ...prev,
-                answers: newAnswers,
-                currentQuestionIndex: nextQuestionIndex,
-                isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
-              }))
-              // If there is another clarifying question, add it as an assistant message
-              if (nextQuestionIndex < researchState.clarifyingQuestions.length) {
-                setMessages(prev => [
+              setResearchState(prev => {
+                const updatedState = {
                   ...prev,
-                  {
-                    id: Date.now() + 4,
-                    text: `Assistant: ${researchState.clarifyingQuestions[nextQuestionIndex]}`,
-                    isUser: false,
-                  },
-                ])
-              }
+                  answers: newAnswers,
+                  currentQuestionIndex: nextQuestionIndex,
+                  isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
+                };
+                // If there is another clarifying question, add it as an assistant message
+                if (nextQuestionIndex < prev.clarifyingQuestions.length) {
+                  setMessages(messagesSoFar => [
+                    ...messagesSoFar,
+                    {
+                      id: Date.now() + 4,
+                      text: `Assistant: ${prev.clarifyingQuestions[nextQuestionIndex]}`,
+                      isUser: false,
+                    },
+                  ])
+                }
+                return updatedState;
+              })
             }
           }
         }
