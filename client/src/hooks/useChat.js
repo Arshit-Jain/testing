@@ -333,7 +333,7 @@ export const useChat = (isAuthenticated) => {
                 isWaitingForAnswer: true,
                 currentQuestionIndex: 0
               }))
-              // SHOW the first question as an assistant message
+              // Only show the first question as an assistant message
               setMessages(prev => [
                 ...prev,
                 {
@@ -342,6 +342,15 @@ export const useChat = (isAuthenticated) => {
                   isUser: false,
                 },
               ])
+              // DO NOT show the generic data.response or assistant summary (which includes all questions)
+            } else if (data.response) {
+              // Only add the response if it's not part of clarifying_questions
+              const aiMessage = {
+                id: Date.now() + 1,
+                text: data.response,
+                isUser: false
+              }
+              setMessages(prev => [...prev, aiMessage])
             }
             
             // Handle title update
