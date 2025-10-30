@@ -67,7 +67,7 @@ export const useChat = (isAuthenticated) => {
     const shouldPoll = activeChat && 
                       !researchState.isCompleted && 
                       !researchState.hasError &&
-                      (!researchPresence.hasOpenAI || !researchPresence.hasGemini)
+                      (researchState.awaitingReport) // Poll only when awaiting the report
 
     if (shouldPoll) {
       console.log('=== useChat: Starting polling for research updates ===', {
@@ -90,7 +90,7 @@ export const useChat = (isAuthenticated) => {
         pollingIntervalRef.current = null
       }
     }
-  }, [activeChat, researchState.isCompleted, researchState.hasError, researchPresence.hasOpenAI, researchPresence.hasGemini])
+  }, [activeChat, researchState.isCompleted, researchState.hasError, researchState.awaitingReport, researchPresence.hasOpenAI, researchPresence.hasGemini])
 
   const loadChats = async () => {
     try {
@@ -159,6 +159,7 @@ export const useChat = (isAuthenticated) => {
             ...prev,
             isCompleted: chat.is_completed || false,
             hasError: chat.has_error || false,
+            // Only continue awaiting report if not completed and no error
             awaitingReport: prev.awaitingReport && !(chat.is_completed || chat.has_error)
           }))
         }
@@ -315,6 +316,13 @@ export const useChat = (isAuthenticated) => {
                 }
                 return [...filtered, ...newMessages]
               })
+              
+              setResearchState(prev => ({
+                ...prev,
+                isWaitingForAnswer: false,
+                awaitingReport: true,
+                isCompleted: true // Should only happen if there were no questions
+              }))
             } else {
               const aiMessage = {
                 id: Date.now() + 1,
@@ -360,14 +368,16 @@ export const useChat = (isAuthenticated) => {
             }
           }
         } else if (researchState.isWaitingForAnswer) {
-          console.log('=== useChat: Answering clarifying question ===', {
+          console.log('=== useChat: Answering clarifying question(s) ===', {
             currentQuestionIndex: researchState.currentQuestionIndex,
             totalQuestions: researchState.clarifyingQuestions.length
           })
           
           // Answering clarifying questions
           const newAnswers = [...researchState.answers, currentMessage]
-          const nextQuestionIndex = researchState.currentQuestionIndex + 1
+          
+          // We don't know the next index yet, as the server handles how many questions are left/answered
+          // in a single message. The server response dictates the next action.
           
           const data = await chatAPI.sendClarificationAnswer(
             activeChat, 
@@ -380,43 +390,75 @@ export const useChat = (isAuthenticated) => {
           )
           
           if (data.success) {
-            if (data.response) {
-              const aiMessage = {
-                id: Date.now() + 1,
-                text: data.response,
-                isUser: false
-              }
-              setMessages(prev => [...prev, aiMessage])
-            }
-            // Update research state
             if (data.messageType === 'research_pages') {
               console.log('=== useChat: Research page generated, will poll for updates ===')
-              // All questions answered, research started - polling will handle updates
+              
+              // Display research pages immediately if returned
+              setMessages(prev => {
+                const newMessages = []
+                if (data.openaiResearch) {
+                  newMessages.push({ id: Date.now() + 1, text: data.openaiResearch, isUser: false })
+                }
+                // Check if Gemini message is returned directly or needs polling
+                if (data.geminiResearch) {
+                  newMessages.push({ id: Date.now() + 2, text: data.geminiResearch, isUser: false })
+                } else if (data.openaiResearch) {
+                   // If OpenAI is here but Gemini isn't, add placeholder to trigger polling
+                   newMessages.push({
+                      id: `gemini-placeholder-${Date.now() + 2}`,
+                      text: '## Gemini (Google) Research\n\nGenerating summary and insights...'
+                        + '\n\n(Please keep this tab open; the Gemini section will appear shortly.)',
+                      isUser: false
+                    })
+                }
+                return [...prev, ...newMessages]
+              })
+              
+              // All questions answered, research started - polling will handle completion status
               setResearchState(prev => ({
                 ...prev,
-                answers: newAnswers,
-                isWaitingForAnswer: false,
-                awaitingReport: true
+                answers: newAnswers, // We assume the server used the full answer list
+                isWaitingForAnswer: false, // Turn off waiting for answer
+                awaitingReport: true // Start waiting for the full report to finish/arrive
               }))
-            } else {
+              
+            } else if (data.messageType === 'acknowledgment') {
               // More questions to answer
+              const answersProvidedInThisMessage = currentMessage.split('\n').filter(s => s.trim().length > 0).length || 1
+              const nextQuestionIndex = researchState.currentQuestionIndex + answersProvidedInThisMessage
+              
+              // Acknowledgment should not contain the next question, so we must add it manually
+              if (data.response) {
+                const aiMessage = {
+                  id: Date.now() + 1,
+                  text: data.response,
+                  isUser: false
+                }
+                setMessages(prev => [...prev, aiMessage])
+              }
+              
+              // Update research state
               setResearchState(prev => {
                 const updatedState = {
                   ...prev,
-                  answers: newAnswers,
+                  answers: newAnswers, // We assume the current message covers all remaining answers
                   currentQuestionIndex: nextQuestionIndex,
                   isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
                 };
+                
                 // If there is another clarifying question, add it as an assistant message
                 if (nextQuestionIndex < prev.clarifyingQuestions.length) {
-                  setMessages(messagesSoFar => [
-                    ...messagesSoFar,
-                    {
-                      id: Date.now() + 4,
-                      text: `Assistant: ${prev.clarifyingQuestions[nextQuestionIndex]}`,
-                      isUser: false,
-                    },
-                  ])
+                  setMessages(messagesSoFar => {
+                    const nextQuestion = prev.clarifyingQuestions[nextQuestionIndex];
+                    return [
+                      ...messagesSoFar,
+                      {
+                        id: Date.now() + 4,
+                        text: `Assistant: ${nextQuestion}`,
+                        isUser: false,
+                      },
+                    ]
+                  })
                 }
                 return updatedState;
               })
@@ -442,7 +484,8 @@ export const useChat = (isAuthenticated) => {
         setResearchState(prev => ({
           ...prev,
           hasError: true,
-          isCompleted: false
+          isCompleted: false,
+          awaitingReport: false
         }))
       } finally {
         setLoading(false)
@@ -476,7 +519,8 @@ export const useChat = (isAuthenticated) => {
             answers: [],
             isWaitingForAnswer: false,
             isCompleted: false,
-            hasError: false
+            hasError: false,
+            awaitingReport: false
           })
           
           // Reload chats to get the new chat in the list
@@ -520,6 +564,15 @@ export const useChat = (isAuthenticated) => {
                 isWaitingForAnswer: true,
                 currentQuestionIndex: 0
               }))
+              // Show the first question as an assistant message
+              setMessages(prev => [
+                ...prev,
+                {
+                  id: Date.now() + 3,
+                  text: `Assistant: ${data.questions[0]}`,
+                  isUser: false,
+                },
+              ])
             }
             
             // Handle title update
@@ -548,7 +601,8 @@ export const useChat = (isAuthenticated) => {
         setResearchState(prev => ({
           ...prev,
           hasError: true,
-          isCompleted: false
+          isCompleted: false,
+          awaitingReport: false
         }))
       } finally {
         setLoading(false)
@@ -558,6 +612,11 @@ export const useChat = (isAuthenticated) => {
   }
 
   const handleMessageChange = (e) => {
+    // Dynamically resize the textarea
+    if (e.target.style) {
+      e.target.style.height = 'auto'
+      e.target.style.height = `${e.target.scrollHeight}px`
+    }
     setNewMessage(e.target.value)
   }
 
@@ -569,16 +628,33 @@ export const useChat = (isAuthenticated) => {
 
     try {
       console.log('=== useChat: Sending research report via email ===', { activeChat })
+      setLoading(true)
       const result = await chatAPI.sendResearchReport(activeChat)
       
       if (result.success) {
         console.log('=== useChat: Email sent successfully ===', result)
-        // You could show a success message to the user here
+        // Add a temporary message to the chat confirming the email sent
+        const confirmationMessage = {
+          id: Date.now(),
+          text: `✅ Report successfully sent to your registered email: ${result.summary}.`,
+          isUser: false,
+          isSystem: true // Optional: A flag to style it differently if needed
+        }
+        setMessages(prev => [...prev, confirmationMessage])
         return result
       }
     } catch (error) {
       console.error('=== useChat: Failed to send email ===', error)
+      const errorMessage = {
+        id: Date.now(),
+        text: "Failed to send email. Please ensure your account has a valid email address.",
+        isUser: false
+      }
+      setMessages(prev => [...prev, errorMessage])
+      // Re-throw for outer catch/finally
       throw error
+    } finally {
+        setLoading(false)
     }
   }
 
@@ -586,8 +662,8 @@ export const useChat = (isAuthenticated) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       // Check if chat is completed or has error
-      if (researchState.isCompleted || researchState.hasError) {
-        return // Don't allow sending messages if chat is completed or has error
+      if (researchState.isCompleted || researchState.hasError || researchState.awaitingReport) {
+        return // Don't allow sending messages if chat is completed or has error or awaiting report
       }
       
       // Check if there's an active chat or not
