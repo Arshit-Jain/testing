@@ -324,6 +324,7 @@ export const useChat = (isAuthenticated) => {
                 isCompleted: true // Should only happen if there were no questions
               }))
             } else {
+              // This is the acknowledgment *before* questions, which includes the list of questions
               const aiMessage = {
                 id: Date.now() + 1,
                 text: data.response,
@@ -351,14 +352,9 @@ export const useChat = (isAuthenticated) => {
                 },
               ])
               // DO NOT show the generic data.response or assistant summary (which includes all questions)
-            } else if (data.response) {
+            } else if (data.response && data.messageType !== 'clarifying_questions') {
               // Only add the response if it's not part of clarifying_questions
-              const aiMessage = {
-                id: Date.now() + 1,
-                text: data.response,
-                isUser: false
-              }
-              setMessages(prev => [...prev, aiMessage])
+              // This case is now handled above (the acknowledgment *before* questions)
             }
             
             // Handle title update
@@ -375,9 +371,6 @@ export const useChat = (isAuthenticated) => {
           
           // Answering clarifying questions
           const newAnswers = [...researchState.answers, currentMessage]
-          
-          // We don't know the next index yet, as the server handles how many questions are left/answered
-          // in a single message. The server response dictates the next action.
           
           const data = await chatAPI.sendClarificationAnswer(
             activeChat, 
@@ -423,19 +416,12 @@ export const useChat = (isAuthenticated) => {
               }))
               
             } else if (data.messageType === 'acknowledgment') {
-              // More questions to answer - FIX: Assume one question was answered to move to the next index.
+              // --- START BUG FIX (Continuous Flow) ---
+              // More questions to answer. We assume 1 answer was provided.
               const answersProvidedInThisMessage = 1 // Enforce a step-by-step UI flow
               const nextQuestionIndex = researchState.currentQuestionIndex + answersProvidedInThisMessage
               
-              // Acknowledgment should not contain the next question, so we must add it manually
-              if (data.response) {
-                const aiMessage = {
-                  id: Date.now() + 1,
-                  text: data.response,
-                  isUser: false
-                }
-                setMessages(prev => [...prev, aiMessage])
-              }
+              // DO NOT add the data.response ("Thank you..." or "Answer received...") to the messages.
               
               // Update research state
               setResearchState(prev => {
@@ -450,7 +436,7 @@ export const useChat = (isAuthenticated) => {
                 if (nextQuestionIndex < prev.clarifyingQuestions.length) {
                   setMessages(messagesSoFar => {
                     const nextQuestion = prev.clarifyingQuestions[nextQuestionIndex];
-                    // Append the next question after the acknowledgment from the server
+                    // Append the next question *immediately* after the user's answer (we skipped the "Thank you" message)
                     return [
                       ...messagesSoFar,
                       {
@@ -463,6 +449,7 @@ export const useChat = (isAuthenticated) => {
                 }
                 return updatedState;
               })
+              // --- END BUG FIX ---
             }
           }
         }
@@ -549,6 +536,7 @@ export const useChat = (isAuthenticated) => {
           const data = await chatAPI.sendResearchTopic(chatData.chat.id, currentMessage)
           
           if (data.success) {
+            // Add the AI's response (which includes the questions)
             const aiMessage = {
               id: Date.now() + 1,
               text: data.response,
@@ -697,3 +685,4 @@ export const useChat = (isAuthenticated) => {
     loadChatsOnDemand
   }
 }
+
