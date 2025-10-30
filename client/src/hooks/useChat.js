@@ -52,7 +52,7 @@ export const useChat = (isAuthenticated) => {
     })
   }, [messages])
 
-  // NEW: Continuous polling effect for research in progress
+  // Continuous polling effect for research in progress
   useEffect(() => {
     // Clear any existing polling interval
     if (pollingIntervalRef.current) {
@@ -428,35 +428,41 @@ export const useChat = (isAuthenticated) => {
               }))
               
             } else if (data.messageType === 'acknowledgment') {
+              console.log('=== useChat: Received acknowledgment, preparing next question update ===')
+              
               // This is the desired flow: advance index by 1 and show the next question
               const answersProvidedInThisMessage = 1 
               const nextQuestionIndex = researchState.currentQuestionIndex + answersProvidedInThisMessage
-              
-              // Update research state
+              const totalQuestions = researchState.clarifyingQuestions.length
+
+              // 1. Update research state first
               setResearchState(prev => {
-                const updatedState = {
+                return {
                   ...prev,
-                  answers: newAnswers, 
+                  answers: newAnswers,
                   currentQuestionIndex: nextQuestionIndex,
-                  isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
-                };
-                
-                // If there is another clarifying question, immediately display it - FIXED VERSION
-                if (nextQuestionIndex < prev.clarifyingQuestions.length) {
-                  setMessages(messagesSoFar => {
-                    const nextQuestion = prev.clarifyingQuestions[nextQuestionIndex];
-                    return [
-                      ...messagesSoFar,
-                      {
-                        id: Date.now() + 4,
-                        text: `**Question ${nextQuestionIndex + 1} of ${prev.clarifyingQuestions.length}:**\n\n${nextQuestion}`,
-                        isUser: false,
-                      },
-                    ]
-                  })
+                  isWaitingForAnswer: nextQuestionIndex < totalQuestions
                 }
-                return updatedState;
               })
+
+              // 2. If there is another clarifying question, display it immediately (outside of setResearchState)
+              if (nextQuestionIndex < totalQuestions) {
+                const nextQuestion = researchState.clarifyingQuestions[nextQuestionIndex];
+                
+                // Use a stable ID format
+                const questionId = `local-q-${activeChat}-${nextQuestionIndex}-${Date.now()}`
+                
+                setMessages(messagesSoFar => {
+                  return [
+                    ...messagesSoFar,
+                    {
+                      id: questionId,
+                      text: `**Question ${nextQuestionIndex + 1} of ${totalQuestions}:**\n\n${nextQuestion}`,
+                      isUser: false,
+                    },
+                  ]
+                })
+              }
             }
           }
         }
