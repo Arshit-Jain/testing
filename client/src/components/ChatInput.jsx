@@ -10,23 +10,32 @@ const ChatInput = ({ message, onMessageChange, onSendMessage, autoFocus = false,
     }
   }, [autoFocus])
 
+  // Auto-focus when waiting for an answer to a question
+  useEffect(() => {
+    if (researchState.isWaitingForAnswer && textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }, [researchState.isWaitingForAnswer])
+
   // Determine placeholder text based on research state
   const getPlaceholder = () => {
     if (researchState.awaitingReport) {
-      return "Thank you and wait for report to generate"
+      return "Research in progress. Please wait for the report to generate..."
     }
     if (!researchState.isResearchMode) {
       return "Enter your research topic or question..."
     } else if (researchState.isWaitingForAnswer && researchState.clarifyingQuestions.length > 0) {
-      const currentQuestion = researchState.clarifyingQuestions[researchState.currentQuestionIndex]
-      return `Answer: ${currentQuestion}`
+      return "Type your answer here..."
     } else {
-      return "Enter your research topic or question..."
+      return "Enter your message..."
     }
   }
 
   // Determine button text based on research state
   const getButtonText = () => {
+    if (researchState.awaitingReport) {
+      return "Please Wait..."
+    }
     if (!researchState.isResearchMode) {
       return "Start Research"
     } else if (researchState.isWaitingForAnswer) {
@@ -40,7 +49,8 @@ const ChatInput = ({ message, onMessageChange, onSendMessage, autoFocus = false,
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      if (message.trim()) {
+      // Don't send if awaiting report or if message is empty
+      if (!researchState.awaitingReport && message.trim()) {
         onSendMessage()
       }
     }
@@ -65,6 +75,7 @@ const ChatInput = ({ message, onMessageChange, onSendMessage, autoFocus = false,
           placeholder={getPlaceholder()}
           className="message-input"
           rows="1"
+          disabled={researchState.awaitingReport}
         />
         <button 
           onClick={onSendMessage}
