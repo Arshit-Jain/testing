@@ -37,10 +37,15 @@ export const useChat = (isAuthenticated) => {
 
   // Load messages when active chat changes
   useEffect(() => {
+    // ===== FIX =====
+    // We check isSendingToNewChat here to prevent loading messages
+    // right after a new chat is created (which would wipe the local state).
+    // But, we REMOVE isSendingToNewChat from the dependency array.
+    // This effect should ONLY run when activeChat *changes*.
     if (activeChat && !isSendingToNewChat) {
       loadMessages(activeChat)
     }
-  }, [activeChat, isSendingToNewChat])
+  }, [activeChat]) // <-- Removed isSendingToNewChat from dependencies
 
   // Track arrival of ChatGPT and Gemini research messages
   useEffect(() => {
