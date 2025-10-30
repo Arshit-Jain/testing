@@ -323,14 +323,17 @@ export const useChat = (isAuthenticated) => {
                 awaitingReport: true,
                 isCompleted: true // Should only happen if there were no questions
               }))
-            } else {
-              // This is the acknowledgment *before* questions, which includes the list of questions
+            } else if (data.messageType !== 'clarifying_questions') {
+              // --- START CHANGE ---
+              // Only add the response if it's NOT clarifying_questions
+              // (we handle that message type below)
               const aiMessage = {
                 id: Date.now() + 1,
                 text: data.response,
                 isUser: false
               }
               setMessages(prev => [...prev, aiMessage])
+              // --- END CHANGE ---
             }
             
             // Handle clarifying questions response
@@ -342,20 +345,29 @@ export const useChat = (isAuthenticated) => {
                 isWaitingForAnswer: true,
                 currentQuestionIndex: 0
               }))
-              // Only show the first question as an assistant message
+              
+              // --- START CHANGE ---
+              // Add the intro message ("I want to ask...") first
+              const introMessage = {
+                id: Date.now() + 1,
+                text: data.response,
+                isUser: false
+              };
+              
+              // Then add the first question
+              const firstQuestionMessage = {
+                id: Date.now() + 3,
+                text: `Question 1: ${data.questions[0]}`, // Change text to "Question 1: ..."
+                isUser: false,
+              };
+
               setMessages(prev => [
                 ...prev,
-                {
-                  id: Date.now() + 3,
-                  text: `Assistant: ${data.questions[0]}`,
-                  isUser: false,
-                },
+                introMessage,
+                firstQuestionMessage
               ])
-              // DO NOT show the generic data.response or assistant summary (which includes all questions)
-            } else if (data.response && data.messageType !== 'clarifying_questions') {
-              // Only add the response if it's not part of clarifying_questions
-              // This case is now handled above (the acknowledgment *before* questions)
-            }
+              // --- END CHANGE ---
+            } 
             
             // Handle title update
             if (data.title) {
@@ -441,7 +453,7 @@ export const useChat = (isAuthenticated) => {
                       ...messagesSoFar,
                       {
                         id: Date.now() + 4,
-                        text: `Assistant: ${nextQuestion}`,
+                        text: `Question ${nextQuestionIndex + 1}: ${nextQuestion}`, // Change text to "Question X: ..."
                         isUser: false,
                       },
                     ]
@@ -536,13 +548,18 @@ export const useChat = (isAuthenticated) => {
           const data = await chatAPI.sendResearchTopic(chatData.chat.id, currentMessage)
           
           if (data.success) {
-            // Add the AI's response (which includes the questions)
-            const aiMessage = {
-              id: Date.now() + 1,
-              text: data.response,
-              isUser: false
+            
+            // --- START CHANGE ---
+            // DO NOT add the data.response if it's clarifying_questions
+            if (data.messageType !== 'clarifying_questions') {
+              const aiMessage = {
+                id: Date.now() + 1,
+                text: data.response,
+                isUser: false
+              }
+              setMessages(prev => [...prev, aiMessage])
             }
-            setMessages(prev => [...prev, aiMessage])
+            // --- END CHANGE ---
             
             // Handle clarifying questions response
             if (data.messageType === 'clarifying_questions' && data.questions) {
@@ -553,15 +570,28 @@ export const useChat = (isAuthenticated) => {
                 isWaitingForAnswer: true,
                 currentQuestionIndex: 0
               }))
-              // Show the first question as an assistant message
+              
+              // --- START CHANGE ---
+              // Add the intro message ("I want to ask...") first
+              const introMessage = {
+                id: Date.now() + 1,
+                text: data.response,
+                isUser: false
+              };
+              
+              // Then add the first question
+              const firstQuestionMessage = {
+                id: Date.now() + 3,
+                text: `Question 1: ${data.questions[0]}`, // Change text to "Question 1: ..."
+                isUser: false,
+              };
+
               setMessages(prev => [
                 ...prev,
-                {
-                  id: Date.now() + 3,
-                  text: `Assistant: ${data.questions[0]}`,
-                  isUser: false,
-                },
+                introMessage,
+                firstQuestionMessage
               ])
+              // --- END CHANGE ---
             }
             
             // Handle title update
