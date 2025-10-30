@@ -333,6 +333,15 @@ export const useChat = (isAuthenticated) => {
                 isWaitingForAnswer: true,
                 currentQuestionIndex: 0
               }))
+              // SHOW the first question as an assistant message
+              setMessages(prev => [
+                ...prev,
+                {
+                  id: Date.now() + 3,
+                  text: `Assistant: ${data.questions[0]}`,
+                  isUser: false,
+                },
+              ])
             }
             
             // Handle title update
@@ -370,7 +379,6 @@ export const useChat = (isAuthenticated) => {
               }
               setMessages(prev => [...prev, aiMessage])
             }
-            
             // Update research state
             if (data.messageType === 'research_pages') {
               console.log('=== useChat: Research page generated, will poll for updates ===')
@@ -382,7 +390,6 @@ export const useChat = (isAuthenticated) => {
                 awaitingReport: true
               }))
             } else {
-              console.log('=== useChat: More questions to answer ===')
               // More questions to answer
               setResearchState(prev => ({
                 ...prev,
@@ -390,6 +397,17 @@ export const useChat = (isAuthenticated) => {
                 currentQuestionIndex: nextQuestionIndex,
                 isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
               }))
+              // If there is another clarifying question, add it as an assistant message
+              if (nextQuestionIndex < researchState.clarifyingQuestions.length) {
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    id: Date.now() + 4,
+                    text: `Assistant: ${researchState.clarifyingQuestions[nextQuestionIndex]}`,
+                    isUser: false,
+                  },
+                ])
+              }
             }
           }
         }
