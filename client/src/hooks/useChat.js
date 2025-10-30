@@ -278,7 +278,7 @@ export const useChat = (isAuthenticated) => {
         text: newMessage,
         isUser: true
       }
-      setMessages([...messages, userMessage])
+      setMessages(prev => [...prev, userMessage])
       const currentMessage = newMessage
       setNewMessage('')
       
@@ -423,8 +423,8 @@ export const useChat = (isAuthenticated) => {
               }))
               
             } else if (data.messageType === 'acknowledgment') {
-              // More questions to answer
-              const answersProvidedInThisMessage = currentMessage.split('\n').filter(s => s.trim().length > 0).length || 1
+              // More questions to answer - FIX: Assume one question was answered to move to the next index.
+              const answersProvidedInThisMessage = 1 // Enforce a step-by-step UI flow
               const nextQuestionIndex = researchState.currentQuestionIndex + answersProvidedInThisMessage
               
               // Acknowledgment should not contain the next question, so we must add it manually
@@ -441,7 +441,7 @@ export const useChat = (isAuthenticated) => {
               setResearchState(prev => {
                 const updatedState = {
                   ...prev,
-                  answers: newAnswers, // We assume the current message covers all remaining answers
+                  answers: newAnswers, 
                   currentQuestionIndex: nextQuestionIndex,
                   isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
                 };
@@ -450,6 +450,7 @@ export const useChat = (isAuthenticated) => {
                 if (nextQuestionIndex < prev.clarifyingQuestions.length) {
                   setMessages(messagesSoFar => {
                     const nextQuestion = prev.clarifyingQuestions[nextQuestionIndex];
+                    // Append the next question after the acknowledgment from the server
                     return [
                       ...messagesSoFar,
                       {
