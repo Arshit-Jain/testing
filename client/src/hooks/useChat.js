@@ -324,9 +324,13 @@ export const useChat = (isAuthenticated) => {
               }))
             } 
             
-            // Handle clarifying questions response
+            // Handle clarifying questions response - FIXED VERSION
             if (data.messageType === 'clarifying_questions' && data.questions) {
-              console.log('=== useChat: Received clarifying questions ===', data.questions)
+              console.log('=== useChat: Received clarifying questions ===', {
+                questions: data.questions,
+                response: data.response
+              })
+              
               setResearchState(prev => ({
                 ...prev,
                 clarifyingQuestions: data.questions,
@@ -334,25 +338,27 @@ export const useChat = (isAuthenticated) => {
                 currentQuestionIndex: 0
               }))
               
-              // Add the intro message ("I want to ask...") first
-              const introMessage = {
-                id: Date.now() + 1,
-                text: data.response,
-                isUser: false
-              };
+              // Build messages to add
+              const messagesToAdd = []
               
-              // Then add the first question, formatted as "Question 1:"
-              const firstQuestionMessage = {
-                id: Date.now() + 3,
-                text: `Question 1: ${data.questions[0]}`, 
+              // Add the intro message if it exists and is not empty
+              if (data.response && data.response.trim()) {
+                messagesToAdd.push({
+                  id: Date.now() + 1,
+                  text: data.response,
+                  isUser: false
+                })
+              }
+              
+              // Always add the first question, formatted clearly
+              messagesToAdd.push({
+                id: Date.now() + 2,
+                text: `**Question 1 of ${data.questions.length}:**\n\n${data.questions[0]}`,
                 isUser: false,
-              };
+              })
 
-              setMessages(prev => [
-                ...prev,
-                introMessage,
-                firstQuestionMessage
-              ])
+              console.log('=== useChat: Adding messages to UI ===', messagesToAdd)
+              setMessages(prev => [...prev, ...messagesToAdd])
             } else if (data.response && data.messageType !== 'clarifying_questions') {
               // This handles the case where there are no questions and a normal response comes back
               const aiMessage = {
@@ -416,9 +422,9 @@ export const useChat = (isAuthenticated) => {
               // All questions answered, research started - polling will handle completion status
               setResearchState(prev => ({
                 ...prev,
-                answers: newAnswers, // We assume the server used the full answer list
-                isWaitingForAnswer: false, // Turn off waiting for answer
-                awaitingReport: true // Start waiting for the full report to finish/arrive
+                answers: newAnswers,
+                isWaitingForAnswer: false,
+                awaitingReport: true
               }))
               
             } else if (data.messageType === 'acknowledgment') {
@@ -435,7 +441,7 @@ export const useChat = (isAuthenticated) => {
                   isWaitingForAnswer: nextQuestionIndex < prev.clarifyingQuestions.length
                 };
                 
-                // If there is another clarifying question, immediately display it.
+                // If there is another clarifying question, immediately display it - FIXED VERSION
                 if (nextQuestionIndex < prev.clarifyingQuestions.length) {
                   setMessages(messagesSoFar => {
                     const nextQuestion = prev.clarifyingQuestions[nextQuestionIndex];
@@ -443,7 +449,7 @@ export const useChat = (isAuthenticated) => {
                       ...messagesSoFar,
                       {
                         id: Date.now() + 4,
-                        text: `Question ${nextQuestionIndex + 1}: ${nextQuestion}`,
+                        text: `**Question ${nextQuestionIndex + 1} of ${prev.clarifyingQuestions.length}:**\n\n${nextQuestion}`,
                         isUser: false,
                       },
                     ]
@@ -538,9 +544,13 @@ export const useChat = (isAuthenticated) => {
           
           if (data.success) {
             
-            // Handle clarifying questions response
+            // Handle clarifying questions response - FIXED VERSION
             if (data.messageType === 'clarifying_questions' && data.questions) {
-              console.log('=== useChat: Received clarifying questions for new chat ===', data.questions)
+              console.log('=== useChat: Received clarifying questions for new chat ===', {
+                questions: data.questions,
+                response: data.response
+              })
+              
               setResearchState(prev => ({
                 ...prev,
                 clarifyingQuestions: data.questions,
@@ -548,25 +558,27 @@ export const useChat = (isAuthenticated) => {
                 currentQuestionIndex: 0
               }))
               
-              // Add the intro message ("I want to ask...") first
-              const introMessage = {
-                id: Date.now() + 1,
-                text: data.response,
-                isUser: false
-              };
+              // Build messages to add
+              const messagesToAdd = []
               
-              // Then add the first question, formatted as "Question 1:"
-              const firstQuestionMessage = {
-                id: Date.now() + 3,
-                text: `Question 1: ${data.questions[0]}`,
+              // Add the intro message if it exists and is not empty
+              if (data.response && data.response.trim()) {
+                messagesToAdd.push({
+                  id: Date.now() + 1,
+                  text: data.response,
+                  isUser: false
+                })
+              }
+              
+              // Always add the first question, formatted clearly
+              messagesToAdd.push({
+                id: Date.now() + 2,
+                text: `**Question 1 of ${data.questions.length}:**\n\n${data.questions[0]}`,
                 isUser: false,
-              };
+              })
 
-              setMessages(prev => [
-                ...prev,
-                introMessage,
-                firstQuestionMessage
-              ])
+              console.log('=== useChat: Adding messages to UI for new chat ===', messagesToAdd)
+              setMessages(prev => [...prev, ...messagesToAdd])
             } else if (data.response && data.messageType !== 'clarifying_questions') {
               const aiMessage = {
                 id: Date.now() + 1,
