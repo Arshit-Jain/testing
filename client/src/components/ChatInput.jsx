@@ -18,8 +18,8 @@ const ChatInput = ({ message, onMessageChange, onSendMessage, autoFocus = false,
     if (!researchState.isResearchMode) {
       return "Enter your research topic or question..."
     } else if (researchState.isWaitingForAnswer && researchState.clarifyingQuestions.length > 0) {
-      // Show a simplified prompt for the current question
-      return `Answer question ${researchState.currentQuestionIndex + 1} of ${researchState.clarifyingQuestions.length}...`
+      const currentQuestion = researchState.clarifyingQuestions[researchState.currentQuestionIndex]
+      return `Answer: ${currentQuestion}`
     } else {
       return "Enter your research topic or question..."
     }
